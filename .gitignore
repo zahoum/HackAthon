@@ -3,6 +3,7 @@
 #launch.json folder
 .vscode/
 #Cache folder
+#cache folder for AL packages
 .alcache/
 #Symbols folder
 .alpackages/
