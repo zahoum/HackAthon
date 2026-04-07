@@ -71,14 +71,53 @@ const Register = () => {
     setLoading(true);
 
     try {
+      // CHANGEMENT: Appel direct à l'API au lieu du contexte
       const { confirmPassword, ...userData } = formData;
-      await register(userData);
+      
+      const response = await fetch('http://192.168.1.37:5000/api/v1/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(userData), // { name, email, password, phone }
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Erreur d'inscription");
+      }
+
       setSuccess('Inscription réussie ! Redirection...');
+      
+      // CHANGEMENT: Connecter automatiquement après inscription
+      const loginResponse = await fetch('http://192.168.1.37:5000/api/v1/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          email: formData.email, 
+          password: formData.password 
+        }),
+      });
+
+      const loginData = await loginResponse.json();
+
+      if (loginResponse.ok) {
+        localStorage.setItem('user', JSON.stringify(loginData.user));
+        localStorage.setItem('isAuthenticated', 'true');
+        
+        if (register) {
+          await register(userData);
+        }
+      }
+      
       setTimeout(() => {
         navigate('/dashboard');
       }, 1500);
     } catch (err) {
-      setError(err.response?.data?.message || "Erreur d'inscription");
+      setError(err.message || "Erreur d'inscription");
     } finally {
       setLoading(false);
     }
