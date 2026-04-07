@@ -51,7 +51,7 @@ db.createCollection("books", {
   validator: {
     $jsonSchema: {
       bsonType: "object", required: ["title", "author", "category"], properties: {
-        title: { bsonType: "string", description: "Must be a string and is required" }, author: { bsonType: "string", description: "Must be a string and iw required" }, category: { bsonType: "string", description: "Must be a string and iw required" },
+        title: { bsonType: "string", description: "Must be a string and is required" }, author: { bsonType: "string", description: "Must be a string and is required" }, category: { bsonType: "string", description: "Must be a string and is required" },
         isRented: { bsonType: "bool", description: "Must be boolean", default: 0 }
       }
     }
