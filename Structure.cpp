@@ -3,7 +3,8 @@ src/
 │   ├── common/
 │   │   ├── Navbar.jsx
 │   │   ├── Footer.jsx
-│   │   └── Button.jsx
+│   │   ├── LoadingSpinner.jsx
+│   │   └── PrivateRoute.jsx
 │   ├── landing/
 │   │   ├── Hero.jsx
 │   │   ├── FeaturedBooks.jsx
@@ -13,15 +14,15 @@ src/
 │       ├── Login.jsx
 │       └── Register.jsx
 ├── pages/
-│   ├── LandingPage.jsx      # page publique
-│   ├── Dashboard.jsx         # après connexion
+│   ├── LandingPage.jsx
+│   ├── Dashboard.jsx
 │   ├── BooksList.jsx
 │   ├── BookDetails.jsx
 │   ├── MyRentals.jsx
-│   └── Profile.jsx
-├── services/
-│   └── api.js                # appels axios
+│   ├── Profile.jsx
+│   ├── ReturnBook.jsx
+│   └── NotFound.jsx
 ├── contexts/
-│   └── AuthContext.jsx       # gestion auth
+│   └── AuthContext.jsx
 ├── App.jsx
 └── main.jsx
