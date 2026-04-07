@@ -18,10 +18,33 @@ const Login = () => {
     setLoading(true);
 
     try {
-      await login(email, password);
+      // CHANGEMENT: Appel direct à l'API au lieu du contexte
+      const response = await fetch('http://192.168.1.37:5000/api/v1/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }), // email au lieu de username
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Email ou mot de passe incorrect');
+      }
+
+      // Stocker l'utilisateur dans localStorage
+      localStorage.setItem('user', JSON.stringify(data.user));
+      localStorage.setItem('isAuthenticated', 'true');
+      
+      // Appeler la fonction login du contexte si elle existe
+      if (login) {
+        await login(email, password);
+      }
+      
       navigate('/dashboard');
     } catch (err) {
-      setError(err.response?.data?.message || 'Email ou mot de passe incorrect');
+      setError(err.message || 'Email ou mot de passe incorrect');
     } finally {
       setLoading(false);
     }
@@ -36,7 +59,7 @@ const Login = () => {
           <p className="auth-subtitle">Connectez-vous à votre compte</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="auth-form">
+        <form onSubmit={handleSubmit} className="auth-form" method="post">
           {error && (
             <div className="alert-error">
               <FaExclamationTriangle />
