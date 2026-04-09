@@ -125,9 +125,9 @@ app.get('/api/v1/emprunt/:id', async (req, res) => {
 
 app.post('/api/v1/signup', async (req, res) => {
     try {
-        const { username, password } = req.body;
+        const { name, password , email} = req.body;
         password = await bcrypt.hash(password, 10);
-        const newUser = { username, password };
+        const newUser = { name, password, email };
         const result = await db.collection("users").insertOne(newUser);
         res.status(200).json(result.ops[0]);
     } catch (error) {
