@@ -20,7 +20,7 @@ export const AuthProvider = ({ children }) => {
       const token = localStorage.getItem('token');
       if (token) {
         // Simuler un utilisateur connecté
-        setUser({ name: 'Test User', email: 'test@example.com' });
+        setUser({ name: 'Test User', mail: 'test@example.com' });
       }
       setLoading(false);
     };
@@ -28,14 +28,15 @@ export const AuthProvider = ({ children }) => {
     checkAuth();
   }, []);
 
-  const login = async (email, password) => {
+  const login = async (mail, name) => {
     // Simulation - à remplacer par ton API
     setLoading(true);
     try {
       // Simuler un appel API
       await new Promise(resolve => setTimeout(resolve, 1000));
-      const user = { name: 'Test User', email, id: 1 };
+      const user = { name: name, mail: mail, id: 1 };
       localStorage.setItem('token', 'fake-token');
+      
       setUser(user);
       setLoading(false);
       return user;
@@ -50,7 +51,7 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     try {
       await new Promise(resolve => setTimeout(resolve, 1000));
-      const user = { name: userData.name, email: userData.email, id: 1 };
+      const user = { name: userData.name, mail: userData.mail, id: 1 };
       localStorage.setItem('token', 'fake-token');
       setUser(user);
       setLoading(false);

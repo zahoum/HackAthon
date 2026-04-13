@@ -2,14 +2,19 @@ import express from "express";
 import connectDB from "./conn.js";
 import bcrypt from "bcrypt";
 import { ObjectId } from "mongodb";
+import cors from "cors";
+
+
 
 const app = express();
-const ipV4 = '192.168.0.213';
+const ipV4 = '192.168.0.163';
 const port = 5000;
 
 // Middleware to parse JSON
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+app.use(cors());
 
 // Connect to MongoDB
 const db = await connectDB();

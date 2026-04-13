@@ -4,13 +4,14 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { FaUser, FaEnvelope, FaLock, FaPhone, FaBook, FaExclamationTriangle, FaCheckCircle } from 'react-icons/fa';
 
+
+
+let ipV4 = '192.168.0.163';
 const Register = () => {
   const [formData, setFormData] = useState({
     name: '',
-    email: '',
+    mail: '',
     password: '',
-    confirmPassword: '',
-    phone: ''
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -74,12 +75,12 @@ const Register = () => {
       // CHANGEMENT: Appel direct à l'API au lieu du contexte
       const { confirmPassword, ...userData } = formData;
       
-      const response = await fetch('http://192.168.1.37:5000/api/v1/signup', {
+      const response = await fetch(`http://${ipV4}:5000/api/v1/signup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(userData), // { name, email, password, phone }
+        body: JSON.stringify(userData), // { name, mail, password }
       });
 
       const data = await response.json();
@@ -91,13 +92,14 @@ const Register = () => {
       setSuccess('Inscription réussie ! Redirection...');
       
       // CHANGEMENT: Connecter automatiquement après inscription
-      const loginResponse = await fetch('http://192.168.1.37:5000/api/v1/login', {
+      const loginResponse = await fetch(`http://${ipV4}:5000/api/v1/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ 
-          email: formData.email, 
+          name: formData.name,
+          mail: formData.mail, 
           password: formData.password 
         }),
       });
@@ -164,24 +166,12 @@ const Register = () => {
             <FaEnvelope className="input-icon" />
             <input
               type="email"
-              name="email"
+              name="mail"
               placeholder="Adresse email"
-              value={formData.email}
+              value={formData.mail}
               onChange={handleChange}
               className="input-field"
               required
-            />
-          </div>
-
-          <div className="input-group">
-            <FaPhone className="input-icon" />
-            <input
-              type="tel"
-              name="phone"
-              placeholder="Numéro de téléphone (optionnel)"
-              value={formData.phone}
-              onChange={handleChange}
-              className="input-field"
             />
           </div>
 

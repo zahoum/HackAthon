@@ -4,8 +4,11 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from "../../contexts/AuthContext";
 import { FaEnvelope, FaLock, FaBook, FaExclamationTriangle } from 'react-icons/fa';
 
+
+let ipV4 = '192.168.0.163';
+
 const Login = () => {
-  const [email, setEmail] = useState('');
+  const [mail, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -19,12 +22,12 @@ const Login = () => {
 
     try {
       // CHANGEMENT: Appel direct à l'API au lieu du contexte
-      const response = await fetch('http://192.168.1.37:5000/api/v1/login', {
+      const response = await fetch(`http://${ipV4}:5000/api/v1/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password }), // email au lieu de username
+        body: JSON.stringify({ mail: mail, password }), // mail au lieu de username
       });
 
       const data = await response.json();
@@ -39,7 +42,7 @@ const Login = () => {
       
       // Appeler la fonction login du contexte si elle existe
       if (login) {
-        await login(email, password);
+        await login(mail, password);
       }
       
       navigate('/dashboard');
@@ -72,7 +75,7 @@ const Login = () => {
             <input
               type="email"
               placeholder="Adresse email"
-              value={email}
+              value={mail}
               onChange={(e) => setEmail(e.target.value)}
               className="input-field"
               required
