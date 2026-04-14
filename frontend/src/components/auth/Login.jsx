@@ -3,8 +3,6 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from "../../contexts/AuthContext";
 import { FaEnvelope, FaLock, FaBook, FaExclamationTriangle } from 'react-icons/fa';
-
-
 let ipV4 = '192.168.0.163';
 
 const Login = () => {
@@ -106,6 +104,10 @@ const Login = () => {
               Créer un compte
             </Link>
           </p>
+        </div>
+        <div className="auth-footer">
+          <p>tu est admin</p>
+          <Link to="/admin-register" className="auth-link">click</Link>
         </div>
       </div>
     </div>

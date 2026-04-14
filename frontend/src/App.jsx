@@ -7,6 +7,8 @@ import Footer from './components/common/Footer';
 // Pages
 import LandingPage from './pages/LandingPage';
 import Login from './components/auth/Login';
+import AdminRegister from './components/auth/AdminRegister'
+import AdminDashboard from './components/admin/AdminDashboard'
 import Register from './components/auth/Register';
 import Dashboard from './pages/Dashboard';
 import BooksList from './pages/BooksList';
@@ -27,6 +29,8 @@ function App() {
               <Route path="/" element={<LandingPage />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/admin-register" element={<AdminRegister />} />
+              <Route path="/admin-dashboard" element={<AdminDashboard />} />
               <Route path="/books" element={<BooksList />} />
               <Route path="/books/:id" element={<BookDetails />} />
               
