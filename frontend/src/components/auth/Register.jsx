@@ -6,7 +6,7 @@ import { FaUser, FaEnvelope, FaLock, FaPhone, FaBook, FaExclamationTriangle, FaC
 
 
 
-let ipV4 = '192.168.0.163';
+let ipV4 = 'localhost';
 const Register = () => {
   const [formData, setFormData] = useState({
     name: '',

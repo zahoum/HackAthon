@@ -5,7 +5,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { FaEnvelope, FaLock, FaBook, FaExclamationTriangle } from 'react-icons/fa';
 
 
-let ipV4 = '192.168.0.163';
+let ipV4 = 'localhost';
 
 const Login = () => {
   const [mail, setEmail] = useState('');
