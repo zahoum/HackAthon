@@ -1,54 +1,209 @@
 // UsersManagement.jsx
-import React, { useState } from 'react';
-import { FaSearch, FaEdit, FaTrash, FaUserPlus, FaEnvelope, FaCalendar } from 'react-icons/fa';
+import React, { useState, useEffect } from 'react';
+import { FaSearch, FaEdit, FaTrash, FaUserPlus, FaEnvelope, FaCalendar, FaSpinner, FaUserCheck } from 'react-icons/fa';
+
+const API_URL = 'http://localhost/api/v1';
 
 export default function UsersManagement() {
-  const [users, setUsers] = useState([
-    { id: 1, name: 'John Doe', email: 'john@example.com', role: 'user', joinDate: '2024-01-15' },
-    { id: 2, name: 'Jane Smith', email: 'jane@example.com', role: 'user', joinDate: '2024-02-20' },
-    { id: 3, name: 'Mike Johnson', email: 'mike@example.com', role: 'admin', joinDate: '2024-01-10' },
-    { id: 4, name: 'Sarah Williams', email: 'sarah@example.com', role: 'user', joinDate: '2024-03-05' },
-  ]);
-  
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
-  const [newUser, setNewUser] = useState({ name: '', email: '', role: 'user' });
+  const [editingUser, setEditingUser] = useState(null);
+  const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: 'user' });
+  const [successMessage, setSuccessMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+
+  // Fetch users from database
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`${API_URL}/users`);
+      if (!response.ok) throw new Error('Failed to fetch users');
+      const data = await response.json();
+      setUsers(data);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      setErrorMessage('Failed to load users from database');
+      setTimeout(() => setErrorMessage(''), 3000);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredUsers = users.filter(user =>
-    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase())
+    user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.mail?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleDeleteUser = (id) => {
+  const handleDeleteUser = async (id) => {
     if (window.confirm('Are you sure you want to delete this user?')) {
-      setUsers(users.filter(user => user.id !== id));
+      try {
+        const response = await fetch(`${API_URL}/user/${id}`, {
+          method: 'DELETE',
+        });
+        
+        if (!response.ok) throw new Error('Failed to delete user');
+        
+        setSuccessMessage('User deleted successfully!');
+        await fetchUsers(); // Refresh the list
+        setTimeout(() => setSuccessMessage(''), 3000);
+      } catch (error) {
+        console.error('Error deleting user:', error);
+        setErrorMessage('Failed to delete user');
+        setTimeout(() => setErrorMessage(''), 3000);
+      }
     }
   };
 
-  const handleAddUser = () => {
-    if (newUser.name && newUser.email) {
-      const user = {
-        id: users.length + 1,
-        ...newUser,
-        joinDate: new Date().toISOString().split('T')[0]
-      };
-      setUsers([...users, user]);
-      setNewUser({ name: '', email: '', role: 'user' });
+  const handleAddUser = async () => {
+    if (!newUser.name || !newUser.email || !newUser.password) {
+      setErrorMessage('Please fill in all fields');
+      setTimeout(() => setErrorMessage(''), 3000);
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_URL}/signup`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: newUser.name,
+          mail: newUser.email,
+          password: newUser.password
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to add user');
+      }
+
+      setSuccessMessage('User added successfully!');
+      await fetchUsers(); // Refresh the list
+      setNewUser({ name: '', email: '', password: '', role: 'user' });
       setShowAddModal(false);
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (error) {
+      console.error('Error adding user:', error);
+      setErrorMessage(error.message);
+      setTimeout(() => setErrorMessage(''), 3000);
     }
   };
+
+  const handleEditUser = async () => {
+    if (!newUser.name || !newUser.email) {
+      setErrorMessage('Please fill in all fields');
+      setTimeout(() => setErrorMessage(''), 3000);
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_URL}/user/${editingUser}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: newUser.name,
+          mail: newUser.email
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to update user');
+
+      setSuccessMessage('User updated successfully!');
+      await fetchUsers(); // Refresh the list
+      setNewUser({ name: '', email: '', password: '', role: 'user' });
+      setEditingUser(null);
+      setShowAddModal(false);
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (error) {
+      console.error('Error updating user:', error);
+      setErrorMessage('Failed to update user');
+      setTimeout(() => setErrorMessage(''), 3000);
+    }
+  };
+
+  const openEditModal = (user) => {
+    setEditingUser(user._id);
+    setNewUser({
+      name: user.name,
+      email: user.mail,
+      password: '',
+      role: user.role || 'user'
+    });
+    setShowAddModal(true);
+  };
+
+  const closeModal = () => {
+    setShowAddModal(false);
+    setEditingUser(null);
+    setNewUser({ name: '', email: '', password: '', role: 'user' });
+    setErrorMessage('');
+  };
+
+  const formatDate = (date) => {
+    if (!date) return 'N/A';
+    return new Date(date).toLocaleDateString();
+  };
+
+  if (loading) {
+    return (
+      <div className="loading-container">
+        <FaSpinner className="spinner" />
+        <p>Loading users...</p>
+        <style jsx>{`
+          .loading-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 400px;
+          }
+          .spinner {
+            font-size: 48px;
+            animation: spin 1s linear infinite;
+            color: #667eea;
+          }
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
+      </div>
+    );
+  }
 
   return (
     <div className="users-management">
       <div className="page-header">
         <div>
           <h1>Users Management</h1>
-          <p>Manage all registered users</p>
+          <p>Manage all registered users from the database</p>
         </div>
         <button className="btn-add" onClick={() => setShowAddModal(true)}>
           <FaUserPlus /> Add New User
         </button>
       </div>
+
+      {successMessage && (
+        <div className="success-message">
+          <FaUserCheck /> {successMessage}
+        </div>
+      )}
+
+      {errorMessage && (
+        <div className="error-message">
+          <span>⚠️</span> {errorMessage}
+        </div>
+      )}
 
       <div className="search-bar">
         <FaSearch className="search-icon" />
@@ -75,23 +230,27 @@ export default function UsersManagement() {
           </thead>
           <tbody>
             {filteredUsers.map(user => (
-              <tr key={user.id}>
-                <td>{user.id}</td>
+              <tr key={user._id}>
+                <td>{user._id?.slice(-6) || 'N/A'}</td>
                 <td><strong>{user.name}</strong></td>
-                <td><FaEnvelope className="email-icon" /> {user.email}</td>
+                <td><FaEnvelope className="email-icon" /> {user.mail}</td>
                 <td>
-                  <span className={`role-badge role-${user.role}`}>
-                    {user.role}
+                  <span className={`role-badge role-${user.role || 'user'}`}>
+                    {user.role || 'user'}
                   </span>
                 </td>
-                <td><FaCalendar /> {user.joinDate}</td>
+                <td><FaCalendar /> {formatDate(user.createdAt || user.joinDate)}</td>
                 <td className="actions">
-                  <button className="action-btn edit-btn" title="Edit">
+                  <button 
+                    className="action-btn edit-btn" 
+                    title="Edit"
+                    onClick={() => openEditModal(user)}
+                  >
                     <FaEdit />
                   </button>
                   <button 
                     className="action-btn delete-btn" 
-                    onClick={() => handleDeleteUser(user.id)}
+                    onClick={() => handleDeleteUser(user._id)}
                     title="Delete"
                   >
                     <FaTrash />
@@ -101,12 +260,17 @@ export default function UsersManagement() {
             ))}
           </tbody>
         </table>
+        {filteredUsers.length === 0 && (
+          <div className="no-results">
+            <p>No users found matching your search.</p>
+          </div>
+        )}
       </div>
 
       {showAddModal && (
-        <div className="modal-overlay" onClick={() => setShowAddModal(false)}>
+        <div className="modal-overlay" onClick={closeModal}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h2>Add New User</h2>
+            <h2>{editingUser ? 'Edit User' : 'Add New User'}</h2>
             <div className="form-group">
               <label>Full Name</label>
               <input
@@ -125,6 +289,17 @@ export default function UsersManagement() {
                 onChange={(e) => setNewUser({...newUser, email: e.target.value})}
               />
             </div>
+            {!editingUser && (
+              <div className="form-group">
+                <label>Password</label>
+                <input
+                  type="password"
+                  placeholder="Enter password"
+                  value={newUser.password}
+                  onChange={(e) => setNewUser({...newUser, password: e.target.value})}
+                />
+              </div>
+            )}
             <div className="form-group">
               <label>Role</label>
               <select
@@ -136,8 +311,10 @@ export default function UsersManagement() {
               </select>
             </div>
             <div className="modal-actions">
-              <button className="btn-cancel" onClick={() => setShowAddModal(false)}>Cancel</button>
-              <button className="btn-submit" onClick={handleAddUser}>Add User</button>
+              <button className="btn-cancel" onClick={closeModal}>Cancel</button>
+              <button className="btn-submit" onClick={editingUser ? handleEditUser : handleAddUser}>
+                {editingUser ? 'Update User' : 'Add User'}
+              </button>
             </div>
           </div>
         </div>
@@ -183,6 +360,30 @@ export default function UsersManagement() {
 
         .btn-add:hover {
           transform: translateY(-2px);
+        }
+
+        .success-message {
+          background: #c6f6d5;
+          color: #22543d;
+          padding: 12px 20px;
+          border-radius: 10px;
+          margin-bottom: 20px;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          animation: slideDown 0.3s ease;
+        }
+
+        .error-message {
+          background: #fed7d7;
+          color: #c53030;
+          padding: 12px 20px;
+          border-radius: 10px;
+          margin-bottom: 20px;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          animation: slideDown 0.3s ease;
         }
 
         .search-bar {
@@ -301,6 +502,12 @@ export default function UsersManagement() {
           transform: scale(1.1);
         }
 
+        .no-results {
+          text-align: center;
+          padding: 40px;
+          color: #666;
+        }
+
         .modal-overlay {
           position: fixed;
           top: 0;
@@ -381,6 +588,17 @@ export default function UsersManagement() {
         @keyframes fadeIn {
           from { opacity: 0; }
           to { opacity: 1; }
+        }
+
+        @keyframes slideDown {
+          from {
+            transform: translateY(-20px);
+            opacity: 0;
+          }
+          to {
+            transform: translateY(0);
+            opacity: 1;
+          }
         }
 
         @keyframes slideUp {
