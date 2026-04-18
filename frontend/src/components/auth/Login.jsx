@@ -3,7 +3,13 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from "../../contexts/AuthContext";
 import { FaEnvelope, FaLock, FaBook, FaExclamationTriangle } from 'react-icons/fa';
+<<<<<<< HEAD
 let ipV4 = '192.168.0.163';
+=======
+
+
+let ipV4 = 'localhost';
+>>>>>>> 48337be7a0365b0134830e380cefb3d1d66a5b89
 
 const Login = () => {
   const [mail, setEmail] = useState('');

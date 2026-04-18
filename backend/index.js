@@ -4,10 +4,8 @@ import bcrypt from "bcrypt";
 import { ObjectId } from "mongodb";
 import cors from "cors";
 
-
-
 const app = express();
-const ipV4 = '192.168.0.163';
+const ipV4 = 'localhost'; // Change this to your actual local IP address if needed
 const port = 5000;
 
 // Middleware to parse JSON
@@ -52,6 +50,7 @@ app.get('/api/v1/books', async (req, res) => {
 app.get('/api/v1/livre/:id', async (req, res) => {
     try {
         const id = new ObjectId(req.params.id);
+        
 
         const book = await db.collection("books").findOne({ _id: id });
 
@@ -72,22 +71,13 @@ app.get('/api/v1/livre/:id', async (req, res) => {
  */
 app.post('/api/v1/livre', async (req, res) => {
     try {
-        const { title, author, category } = req.body;
+        const { title, author, year } = req.body;
 
-        // Validation
-        if (!title || !author || !category) {
-            return res.status(400).json({ 
-                message: "Missing fields. Required: title, author, category" 
-            });
+        if (!title || !author || !year) {
+            return res.status(400).json({ message: "Missing fields" });
         }
 
-        // Create new book object
-        const newBook = { 
-            title, 
-            author, 
-            category,
-            isRented: false 
-        };
+        const newBook = { title, author, year };
 
         const result = await db.collection("books").insertOne(newBook);
 
@@ -95,8 +85,7 @@ app.post('/api/v1/livre', async (req, res) => {
             _id: result.insertedId,
             title,
             author,
-            category,
-            isRented: false
+            year
         });
 
     } catch (error) {
@@ -321,5 +310,17 @@ app.post('/api/v1/login', async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Error during login' });
+    }
+});
+
+
+//get all the books
+app.get('/api/v1/livres', async (req, res) => {
+    try {
+        const books = await db.collection("books").find({}).toArray();
+        res.status(200).json(books);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error fetching books' });
     }
 });

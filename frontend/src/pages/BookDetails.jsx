@@ -6,7 +6,7 @@ import { FaCalendarAlt, FaMoneyBillWave, FaUser, FaBook } from 'react-icons/fa';
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'http://localhost:5000/api',
+  baseURL: 'http://localhost:5000',
 });
 
 const BookDetails = () => {
@@ -23,7 +23,9 @@ const BookDetails = () => {
 
   const fetchBookDetails = async () => {
     try {
-      const response = await api.get(`/books/${id}`);
+      const response = await api.get(`/api/v1/livre/${id}`);
+      console.log(response);
+      
       setBook(response.data);
     } catch (error) {
       console.error('Error fetching book:', error);
