@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { FaBook, FaUser, FaTag, FaPlus, FaCheck, FaSpinner } from 'react-icons/fa';
 
-const API_URL = 'http://192.168.0.163:5000/api/v1';
+const API_URL = 'http://localhost/api/v1';
 
 export default function AddBooks() {
   const [books, setBooks] = useState([]);
