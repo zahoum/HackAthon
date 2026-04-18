@@ -1,13 +1,52 @@
 // AdminDashboard.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaChartLine, FaUsers, FaBook, FaCog, FaSignOutAlt, FaPlus, FaList } from 'react-icons/fa';
+import { FaChartLine, FaUsers, FaBook, FaCog, FaSignOutAlt, FaSpinner } from 'react-icons/fa';
 import UsersManagement from './UsersManagement';
 import AddBooks from './AddBooks';
+
+const API_URL = 'http://192.168.0.163:5000/api/v1';
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const [activePage, setActivePage] = useState('dashboard');
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    totalBooks: 0,
+    totalRented: 0
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchStats();
+  }, []);
+
+  const fetchStats = async () => {
+    try {
+      setLoading(true);
+      // Fetch users
+      const usersResponse = await fetch(`${API_URL}/users`);
+      const users = usersResponse.ok ? await usersResponse.json() : [];
+      
+      // Fetch books
+      const booksResponse = await fetch(`${API_URL}/books`);
+      const books = booksResponse.ok ? await booksResponse.json() : [];
+      
+      // Fetch rented books
+      const rentedResponse = await fetch(`${API_URL}/rented`);
+      const rented = rentedResponse.ok ? await rentedResponse.json() : [];
+
+      setStats({
+        totalUsers: users.length,
+        totalBooks: books.length,
+        totalRented: rented.length
+      });
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('adminAuthenticated');
@@ -21,7 +60,7 @@ export default function AdminDashboard() {
       case 'books':
         return <AddBooks />;
       default:
-        return <DashboardHome />;
+        return <DashboardHome stats={stats} loading={loading} />;
     }
   };
 
@@ -173,13 +212,40 @@ export default function AdminDashboard() {
   );
 }
 
-// Dashboard Home Component
-function DashboardHome() {
-  const stats = [
-    { title: 'Total Users', value: '1,234', icon: '👥', color: '#667eea' },
-    { title: 'Total Books', value: '567', icon: '📚', color: '#48bb78' },
-    { title: 'Active Loans', value: '89', icon: '🔄', color: '#ed8936' },
+// Dashboard Home Component with real data
+function DashboardHome({ stats, loading }) {
+  const statsData = [
+    { title: 'Total Users', value: stats.totalUsers, icon: '👥', color: '#667eea' },
+    { title: 'Total Books', value: stats.totalBooks, icon: '📚', color: '#48bb78' },
+    { title: 'Active Loans', value: stats.totalRented, icon: '🔄', color: '#ed8936' },
   ];
+
+  if (loading) {
+    return (
+      <div className="loading-container">
+        <FaSpinner className="spinner" />
+        <p>Loading dashboard...</p>
+        <style jsx>{`
+          .loading-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 400px;
+          }
+          .spinner {
+            font-size: 48px;
+            animation: spin 1s linear infinite;
+            color: #667eea;
+          }
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -189,12 +255,12 @@ function DashboardHome() {
       </div>
       
       <div className="stats-grid">
-        {stats.map((stat, index) => (
+        {statsData.map((stat, index) => (
           <div key={index} className="stat-card" style={{ borderTop: `4px solid ${stat.color}` }}>
             <div className="stat-icon">{stat.icon}</div>
             <div className="stat-info">
               <h3>{stat.title}</h3>
-              <p className="stat-number">{stat.value}</p>
+              <p className="stat-number">{stat.value.toLocaleString()}</p>
             </div>
           </div>
         ))}
