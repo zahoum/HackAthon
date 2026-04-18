@@ -179,7 +179,6 @@ function DashboardHome() {
     { title: 'Total Users', value: '1,234', icon: '👥', color: '#667eea' },
     { title: 'Total Books', value: '567', icon: '📚', color: '#48bb78' },
     { title: 'Active Loans', value: '89', icon: '🔄', color: '#ed8936' },
-    { title: 'Revenue', value: '$12,345', icon: '💰', color: '#e53e3e' }
   ];
 
   return (

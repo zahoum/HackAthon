@@ -36,7 +36,16 @@ app.listen(port, ipV4, () => {
 /* =========================================================
    📚 BOOK ROUTES
 ========================================================= */
-
+//  GET all books from aissa sahbk : hadi nsitiha a arrach(larp)
+app.get('/api/v1/books', async (req, res) => {
+    try {
+        const books = await db.collection("books").find({}).toArray();
+        res.status(200).json(books);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error fetching books' });
+    }
+});
 /**
  * GET book by ID
  */
@@ -59,25 +68,35 @@ app.get('/api/v1/livre/:id', async (req, res) => {
 });
 
 /**
- * CREATE new book
+ * CREATE new book (title, author, category) Aissa daz mn hna hydt rir year bax t5dem liuya
  */
 app.post('/api/v1/livre', async (req, res) => {
     try {
-        const { title, author, year } = req.body;
+        const { title, author, category } = req.body;
 
-        if (!title || !author || !year) {
-            return res.status(400).json({ message: "Missing fields" });
+        // Validation
+        if (!title || !author || !category) {
+            return res.status(400).json({ 
+                message: "Missing fields. Required: title, author, category" 
+            });
         }
 
-        const newBook = { title, author, year };
+        // Create new book object
+        const newBook = { 
+            title, 
+            author, 
+            category,
+            isRented: false 
+        };
 
         const result = await db.collection("books").insertOne(newBook);
 
-        res.status(200).json({
+        res.status(201).json({
             _id: result.insertedId,
             title,
             author,
-            year
+            category,
+            isRented: false
         });
 
     } catch (error) {
@@ -85,32 +104,51 @@ app.post('/api/v1/livre', async (req, res) => {
         res.status(500).json({ message: 'Error creating book' });
     }
 });
-
 /**
- * UPDATE book
+ * UPDATE book (title, author, category) Larp Daz mn hna
  */
 app.put('/api/v1/livre/:id', async (req, res) => {
     try {
         const id = new ObjectId(req.params.id);
-        const { title, author, year } = req.body;
+        const { title, author, category } = req.body;
+
+        // Validation
+        if (!title || !author || !category) {
+            return res.status(400).json({ 
+                message: "Missing fields. Required: title, author, category" 
+            });
+        }
 
         const result = await db.collection("books").updateOne(
             { _id: id },
-            { $set: { title, author, year } }
+            { 
+                $set: { 
+                    title, 
+                    author, 
+                    category 
+                } 
+            }
         );
 
         if (result.matchedCount === 0) {
             return res.status(404).json({ message: 'Book not found' });
         }
 
-        res.status(200).json({ message: 'Book updated successfully' });
+        res.status(200).json({ 
+            message: 'Book updated successfully',
+            book: {
+                _id: id,
+                title,
+                author,
+                category
+            }
+        });
 
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Error updating book' });
     }
 });
-
 /**
  * DELETE book
  */

@@ -1,16 +1,16 @@
 // AddBooks.jsx
-import React, { useState } from 'react';
-import { FaBook, FaUser, FaTag, FaPlus, FaTrash, FaCheck, FaImage } from 'react-icons/fa';
+import React, { useState, useEffect } from 'react';
+import { FaBook, FaUser, FaTag, FaPlus, FaCheck, FaSpinner } from 'react-icons/fa';
+
+const API_URL = 'http://192.168.0.163:5000/api/v1';
 
 export default function AddBooks() {
-  const [books, setBooks] = useState([
-    { id: 1, name: 'The Great Gatsby', category: 'Fiction', author: 'F. Scott Fitzgerald', cover: '📖' },
-    { id: 2, name: '1984', category: 'Dystopian', author: 'George Orwell', cover: '📚' },
-    { id: 3, name: 'To Kill a Mockingbird', category: 'Classic', author: 'Harper Lee', cover: '📕' },
-  ]);
+  const [books, setBooks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   
   const [bookForm, setBookForm] = useState({
-    name: '',
+    title: '',
     category: '',
     author: ''
   });
@@ -18,6 +18,7 @@ export default function AddBooks() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [successMessage, setSuccessMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
 
   const categories = [
     'Fiction',
@@ -34,6 +35,28 @@ export default function AddBooks() {
     'Poetry'
   ];
 
+  // Fetch books from database on component mount
+  useEffect(() => {
+    fetchBooks();
+  }, []);
+
+  const fetchBooks = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`${API_URL}/books`);
+      if (!response.ok) throw new Error('Failed to fetch books');
+      const data = await response.json();
+      setBooks(data);
+    } catch (error) {
+      console.error('Error fetching books:', error);
+      setErrorMessage('Failed to load books from database');
+      setTimeout(() => setErrorMessage(''), 3000);
+      setBooks([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleInputChange = (e) => {
     setBookForm({
       ...bookForm,
@@ -41,40 +64,77 @@ export default function AddBooks() {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setSubmitting(true);
+    setErrorMessage('');
     
-    if (!bookForm.name || !bookForm.category || !bookForm.author) {
-      alert('Please fill in all fields');
+    if (!bookForm.title || !bookForm.category || !bookForm.author) {
+      setErrorMessage('Please fill in all fields');
+      setSubmitting(false);
       return;
     }
 
-    if (editingId) {
-      // Edit existing book
-      setBooks(books.map(book => 
-        book.id === editingId 
-          ? { ...book, ...bookForm }
-          : book
-      ));
-      setSuccessMessage('Book updated successfully!');
-    } else {
-      // Add new book
-      const newBook = {
-        id: books.length + 1,
-        ...bookForm,
-        cover: getRandomCover()
-      };
-      setBooks([...books, newBook]);
-      setSuccessMessage('Book added successfully!');
-    }
+    try {
+      if (editingId) {
+        // UPDATE existing book
+        const response = await fetch(`${API_URL}/livre/${editingId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            title: bookForm.title,
+            author: bookForm.author,
+            category: bookForm.category
+          }),
+        });
 
-    // Reset form
-    setBookForm({ name: '', category: '', author: '' });
-    setEditingId(null);
-    setShowForm(false);
-    
-    // Clear success message after 3 seconds
-    setTimeout(() => setSuccessMessage(''), 3000);
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.message || 'Failed to update book');
+        }
+        
+        setSuccessMessage('Book updated successfully!');
+      } else {
+        // ADD new book
+        const response = await fetch(`${API_URL}/livre`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            title: bookForm.title,
+            author: bookForm.author,
+            category: bookForm.category
+          }),
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.message || 'Failed to add book');
+        }
+        
+        setSuccessMessage('Book added successfully!');
+      }
+
+      // Refresh the book list
+      await fetchBooks();
+      
+      // Reset form
+      setBookForm({ title: '', category: '', author: '' });
+      setEditingId(null);
+      setShowForm(false);
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (error) {
+      console.error('Error:', error);
+      setErrorMessage(error.message);
+      setTimeout(() => setErrorMessage(''), 3000);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const getRandomCover = () => {
@@ -84,27 +144,70 @@ export default function AddBooks() {
 
   const handleEdit = (book) => {
     setBookForm({
-      name: book.name,
-      category: book.category,
+      title: book.title,
+      category: book.category || '',
       author: book.author
     });
-    setEditingId(book.id);
+    setEditingId(book._id);
     setShowForm(true);
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this book?')) {
-      setBooks(books.filter(book => book.id !== id));
-      setSuccessMessage('Book deleted successfully!');
-      setTimeout(() => setSuccessMessage(''), 3000);
+      try {
+        const response = await fetch(`${API_URL}/livre/${id}`, {
+          method: 'DELETE',
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.message || 'Failed to delete book');
+        }
+        
+        setSuccessMessage('Book deleted successfully!');
+        await fetchBooks(); // Refresh the list
+        setTimeout(() => setSuccessMessage(''), 3000);
+      } catch (error) {
+        console.error('Error deleting book:', error);
+        setErrorMessage('Failed to delete book');
+        setTimeout(() => setErrorMessage(''), 3000);
+      }
     }
   };
 
   const handleCancel = () => {
-    setBookForm({ name: '', category: '', author: '' });
+    setBookForm({ title: '', category: '', author: '' });
     setEditingId(null);
     setShowForm(false);
+    setErrorMessage('');
   };
+
+  if (loading) {
+    return (
+      <div className="loading-container">
+        <FaSpinner className="spinner" />
+        <p>Loading books...</p>
+        <style jsx>{`
+          .loading-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 400px;
+          }
+          .spinner {
+            font-size: 48px;
+            animation: spin 1s linear infinite;
+            color: #667eea;
+          }
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
+      </div>
+    );
+  }
 
   return (
     <div className="add-books">
@@ -126,6 +229,12 @@ export default function AddBooks() {
         </div>
       )}
 
+      {errorMessage && (
+        <div className="error-message">
+          <span>⚠️</span> {errorMessage}
+        </div>
+      )}
+
       {showForm && (
         <div className="book-form-container">
           <div className="form-header">
@@ -135,12 +244,12 @@ export default function AddBooks() {
           
           <form onSubmit={handleSubmit} className="book-form">
             <div className="form-group">
-              <label><FaBook /> Book Name</label>
+              <label><FaBook /> Book Title</label>
               <input
                 type="text"
-                name="name"
+                name="title"
                 placeholder="Enter book title"
-                value={bookForm.name}
+                value={bookForm.title}
                 onChange={handleInputChange}
                 required
               />
@@ -177,8 +286,8 @@ export default function AddBooks() {
               <button type="button" className="btn-cancel" onClick={handleCancel}>
                 Cancel
               </button>
-              <button type="submit" className="btn-submit">
-                {editingId ? 'Update Book' : 'Add Book'}
+              <button type="submit" className="btn-submit" disabled={submitting}>
+                {submitting ? 'Processing...' : (editingId ? 'Update Book' : 'Add Book')}
               </button>
             </div>
           </form>
@@ -187,20 +296,21 @@ export default function AddBooks() {
 
       <div className="books-grid">
         {books.map(book => (
-          <div key={book.id} className="book-card">
+          <div key={book._id} className="book-card">
             <div className="book-cover">
-              <span className="book-emoji">{book.cover}</span>
+              <span className="book-emoji">{getRandomCover()}</span>
             </div>
             <div className="book-info">
-              <h3>{book.name}</h3>
+              <h3>{book.title}</h3>
               <p className="book-author">by {book.author}</p>
-              <span className="book-category">{book.category}</span>
+              <span className="book-category">{book.category || 'Uncategorized'}</span>
+              {book.isRented && <span className="rented-badge">Rented</span>}
             </div>
             <div className="book-actions">
               <button className="edit-btn" onClick={() => handleEdit(book)}>
                 Edit
               </button>
-              <button className="delete-btn" onClick={() => handleDelete(book.id)}>
+              <button className="delete-btn" onClick={() => handleDelete(book._id)}>
                 Delete
               </button>
             </div>
@@ -262,6 +372,18 @@ export default function AddBooks() {
         .success-message {
           background: #c6f6d5;
           color: #22543d;
+          padding: 12px 20px;
+          border-radius: 10px;
+          margin-bottom: 20px;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          animation: slideDown 0.3s ease;
+        }
+
+        .error-message {
+          background: #fed7d7;
+          color: #c53030;
           padding: 12px 20px;
           border-radius: 10px;
           margin-bottom: 20px;
@@ -370,8 +492,13 @@ export default function AddBooks() {
           transition: transform 0.2s ease;
         }
 
-        .btn-submit:hover {
+        .btn-submit:hover:not(:disabled) {
           transform: translateY(-2px);
+        }
+
+        .btn-submit:disabled {
+          opacity: 0.7;
+          cursor: not-allowed;
         }
 
         .books-grid {
@@ -390,6 +517,7 @@ export default function AddBooks() {
           gap: 15px;
           transition: all 0.3s ease;
           box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+          position: relative;
         }
 
         .book-card:hover {
@@ -435,6 +563,17 @@ export default function AddBooks() {
           font-size: 11px;
           color: #667eea;
           font-weight: 600;
+        }
+
+        .rented-badge {
+          display: inline-block;
+          background: #fef5e7;
+          color: #e67e22;
+          padding: 3px 8px;
+          border-radius: 12px;
+          font-size: 11px;
+          font-weight: 600;
+          margin-left: 5px;
         }
 
         .book-actions {
