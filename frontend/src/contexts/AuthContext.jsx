@@ -1,4 +1,6 @@
+// AuthContext.jsx - Complete working version
 import React, { createContext, useState, useContext, useEffect } from 'react';
+import axios from 'axios';
 
 const AuthContext = createContext();
 
@@ -10,65 +12,176 @@ export const useAuth = () => {
   return context;
 };
 
+// Create axios instance
+const api = axios.create({
+  baseURL: 'http://localhost:5000/api/v1',
+});
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
+  // Load user from localStorage on app start
   useEffect(() => {
-    // Simulation de chargement - à remplacer par ton API plus tard
-    const checkAuth = async () => {
-      const token = localStorage.getItem('token');
-      if (token) {
-        // Simuler un utilisateur connecté
-        setUser({ name: 'Test User', mail: 'test@example.com' });
+    const loadUser = async () => {
+      try {
+        const storedUser = localStorage.getItem('user');
+        console.log('Loading user from localStorage:', storedUser);
+        
+        if (storedUser && storedUser !== 'undefined') {
+          const userData = JSON.parse(storedUser);
+          console.log('Parsed user data:', userData);
+          
+          // Validate that user has an _id
+          if (userData && userData._id) {
+            setUser(userData);
+            console.log('User set in context:', userData);
+          } else {
+            console.error('Invalid user data - missing _id');
+            localStorage.removeItem('user');
+            localStorage.removeItem('token');
+          }
+        } else {
+          console.log('No user found in localStorage');
+        }
+      } catch (error) {
+        console.error('Error loading user from storage:', error);
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
     
-    checkAuth();
+    loadUser();
   }, []);
 
-  const login = async (mail, name) => {
-    // Simulation - à remplacer par ton API
+  // Login function
+  const login = async (email, password) => {
     setLoading(true);
+    setError(null);
+    
     try {
-      // Simuler un appel API
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      const user = { name: name, mail: mail, id: 1 };
-      localStorage.setItem('token', 'fake-token');
+      console.log('Attempting login with:', { mail: email });
       
-      setUser(user);
-      setLoading(false);
-      return user;
+      const response = await api.post('/login', {
+        mail: email,
+        password: password
+      });
+      
+      console.log('Login response:', response.data);
+      
+      if (response.data.user && response.data.user._id) {
+        // Create user object with proper ID
+        const userData = {
+          _id: response.data.user._id.toString(),
+          name: response.data.user.name,
+          mail: response.data.user.mail,
+          email: response.data.user.mail
+        };
+        
+        console.log('Setting user data:', userData);
+        
+        // Store in state and localStorage
+        setUser(userData);
+        localStorage.setItem('user', JSON.stringify(userData));
+        localStorage.setItem('token', response.data.token || 'authenticated');
+        
+        setLoading(false);
+        return { success: true, user: userData };
+      } else {
+        throw new Error('Invalid response from server');
+      }
     } catch (error) {
+      console.error('Login error:', error);
+      const errorMessage = error.response?.data?.message || 'Login failed. Please try again.';
+      setError(errorMessage);
       setLoading(false);
-      throw error;
+      return { success: false, error: errorMessage };
     }
   };
 
-  const register = async (userData) => {
-    // Simulation - à remplacer par ton API
+  // Register function
+  const register = async (name, email, password) => {
     setLoading(true);
+    setError(null);
+    
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      const user = { name: userData.name, mail: userData.mail, id: 1 };
-      localStorage.setItem('token', 'fake-token');
-      setUser(user);
-      setLoading(false);
-      return user;
+      console.log('Attempting registration:', { name, mail: email });
+      
+      const response = await api.post('/signup', {
+        name: name,
+        mail: email,
+        password: password
+      });
+      
+      console.log('Register response:', response.data);
+      
+      if (response.data.user && response.data.user._id) {
+        // Create user object with proper ID
+        const userData = {
+          _id: response.data.user._id.toString(),
+          name: response.data.user.name,
+          mail: response.data.user.mail,
+          email: response.data.user.mail
+        };
+        
+        console.log('Setting user data after registration:', userData);
+        
+        // Store in state and localStorage
+        setUser(userData);
+        localStorage.setItem('user', JSON.stringify(userData));
+        localStorage.setItem('token', response.data.token || 'registered');
+        
+        setLoading(false);
+        return { success: true, user: userData };
+      } else {
+        throw new Error('Invalid response from server');
+      }
     } catch (error) {
+      console.error('Registration error:', error);
+      const errorMessage = error.response?.data?.message || 'Registration failed. Please try again.';
+      setError(errorMessage);
       setLoading(false);
-      throw error;
+      return { success: false, error: errorMessage };
     }
   };
 
+  // Logout function
   const logout = () => {
-    localStorage.removeItem('token');
+    console.log('Logging out, clearing user data');
     setUser(null);
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
+  };
+
+  // Update user function (for profile updates)
+  const updateUser = (updatedUser) => {
+    console.log('Updating user:', updatedUser);
+    setUser(updatedUser);
+    localStorage.setItem('user', JSON.stringify(updatedUser));
+  };
+
+  // Clear error
+  const clearError = () => {
+    setError(null);
+  };
+
+  const value = {
+    user,
+    loading,
+    error,
+    login,
+    register,
+    logout,
+    updateUser,
+    clearError,
+    setUser
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, loading, setUser }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

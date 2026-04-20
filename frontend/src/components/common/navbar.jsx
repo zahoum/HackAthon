@@ -17,7 +17,7 @@ const Navbar = () => {
       <div className="container">
         <Link to="/" className="logo">
           <FaBook />
-          <span>BookZahoum</span>
+          <span>BooksRent</span>
         </Link>
 
         <div className="nav-links">

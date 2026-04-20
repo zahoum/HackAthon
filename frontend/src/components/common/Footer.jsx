@@ -15,7 +15,7 @@ const Footer = () => {
     <footer className="footer">
       <div className="footer-container">
         <div className="footer-section">
-          <h3>📚 BookZahoum</h3>
+          <h3>📚 BooksRents</h3>
           <p>Votre bibliothèque en ligne pour louer des livres facilement et à petit prix.</p>
           <div className="social-links">
             <a href="#"><FaFacebook /></a>
@@ -38,7 +38,7 @@ const Footer = () => {
         <div className="footer-section">
           <h4>Contact</h4>
           <ul className="footer-links">
-            <li><FaEnvelope /> contact@bookzahoum.com</li>
+            <li><FaEnvelope /> contact@bookRents.com</li>
             <li><FaPhone /> +212 6 49339948</li>
             <li><FaMapMarkerAlt /> Alhoceima, Maroc</li>
           </ul>
@@ -64,7 +64,7 @@ const Footer = () => {
       </div>
       
       <div className="footer-bottom">
-        <p>&copy; 2026 BookZahoum. Tous droits réservés.</p>
+        <p>&copy; 2026 BooksRent. Tous droits réservés.</p>
         <p>Frontend powered by Zahoum Aissa & </p>
         <p>backend with arrach mohamed &</p>
         <p>database with merkhi mohamed </p>

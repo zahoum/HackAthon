@@ -1,22 +1,21 @@
-// Register.jsx - Beautiful design
+// Register.jsx - Updated with proper backend integration
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { FaUser, FaEnvelope, FaLock, FaPhone, FaBook, FaExclamationTriangle, FaCheckCircle } from 'react-icons/fa';
- 
+import { FaUser, FaEnvelope, FaLock, FaExclamationTriangle, FaCheckCircle, FaSpinner } from 'react-icons/fa';
 
-let ipV4 = 'localhost';
 const Register = () => {
   const [formData, setFormData] = useState({
     name: '',
     mail: '',
     password: '',
+    confirmPassword: ''
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState('');
-  const { register } = useAuth();
+  const { register, login } = useAuth();
   const navigate = useNavigate();
 
   const checkPasswordStrength = (password) => {
@@ -46,10 +45,19 @@ const Register = () => {
 
   const getStrengthText = () => {
     switch(passwordStrength) {
-      case 'weak': return 'Mot de passe faible';
+      case 'weak': return 'Mot de passe faible (min 6 caractères)';
       case 'medium': return 'Mot de passe moyen';
       case 'strong': return 'Mot de passe fort';
       default: return '';
+    }
+  };
+
+  const getStrengthColor = () => {
+    switch(passwordStrength) {
+      case 'weak': return '#ef4444';
+      case 'medium': return '#f59e0b';
+      case 'strong': return '#10b981';
+      default: return '#e5e7eb';
     }
   };
 
@@ -57,6 +65,12 @@ const Register = () => {
     e.preventDefault();
     setError('');
     setSuccess('');
+
+    // Validation
+    if (!formData.name || !formData.mail || !formData.password || !formData.confirmPassword) {
+      setError('Veuillez remplir tous les champs');
+      return;
+    }
 
     if (formData.password !== formData.confirmPassword) {
       setError('Les mots de passe ne correspondent pas');
@@ -68,159 +82,297 @@ const Register = () => {
       return;
     }
 
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.mail)) {
+      setError('Veuillez entrer une adresse email valide');
+      return;
+    }
+
     setLoading(true);
 
     try {
-      // CHANGEMENT: Appel direct à l'API au lieu du contexte
-      const { confirmPassword, ...userData } = formData;
+      // Call register from AuthContext
+      const result = await register(formData.name, formData.mail, formData.password);
       
-      const response = await fetch(`http://${ipV4}:5000/api/v1/signup`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(userData), // { name, mail, password }
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Erreur d'inscription");
-      }
-
-      setSuccess('Inscription réussie ! Redirection...');
-      
-      // CHANGEMENT: Connecter automatiquement après inscription
-      const loginResponse = await fetch(`http://${ipV4}:5000/api/v1/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          name: formData.name,
-          mail: formData.mail, 
-          password: formData.password 
-        }),
-      });
-
-      const loginData = await loginResponse.json();
-
-      if (loginResponse.ok) {
-        localStorage.setItem('user', JSON.stringify(loginData.user));
-        localStorage.setItem('isAuthenticated', 'true');
+      if (result.success) {
+        setSuccess('Inscription réussie ! Redirection...');
         
-        if (register) {
-          await register(userData);
-        }
+        // Auto login after successful registration
+        setTimeout(() => {
+          navigate('/dashboard');
+        }, 1500);
+      } else {
+        setError(result.error || "Erreur lors de l'inscription");
       }
-      
-      setTimeout(() => {
-        navigate('/dashboard');
-      }, 1500);
     } catch (err) {
-      setError(err.message || "Erreur d'inscription");
+      console.error('Registration error:', err);
+      setError(err.message || "Erreur lors de l'inscription");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="auth-page">
-      <div className="auth-container">
-        <div className="auth-header">
-          <div className="auth-logo">📖</div>
-          <h1 className="auth-title">Rejoignez-nous</h1>
-          <p className="auth-subtitle">Créez votre compte gratuitement</p>
+    <div className="auth-page" style={{ 
+      minHeight: '100vh', 
+      display: 'flex', 
+      alignItems: 'center', 
+      justifyContent: 'center',
+      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      padding: '2rem'
+    }}>
+      <div className="auth-container" style={{
+        backgroundColor: 'white',
+        borderRadius: '20px',
+        padding: '2.5rem',
+        width: '100%',
+        maxWidth: '450px',
+        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+      }}>
+        <div className="auth-header" style={{ textAlign: 'center', marginBottom: '2rem' }}>
+          <div className="auth-logo" style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>📖</div>
+          <h1 className="auth-title" style={{ fontSize: '1.875rem', fontWeight: 'bold', color: '#1f2937', marginBottom: '0.5rem' }}>
+            Rejoignez-nous
+          </h1>
+          <p className="auth-subtitle" style={{ color: '#6b7280' }}>
+            Créez votre compte gratuitement
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="auth-form">
           {error && (
-            <div className="alert-error">
+            <div className="alert-error" style={{
+              backgroundColor: '#fee2e2',
+              color: '#dc2626',
+              padding: '0.75rem',
+              borderRadius: '10px',
+              marginBottom: '1rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              fontSize: '0.875rem'
+            }}>
               <FaExclamationTriangle />
               {error}
             </div>
           )}
 
           {success && (
-            <div className="alert-success">
+            <div className="alert-success" style={{
+              backgroundColor: '#d1fae5',
+              color: '#065f46',
+              padding: '0.75rem',
+              borderRadius: '10px',
+              marginBottom: '1rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              fontSize: '0.875rem'
+            }}>
               <FaCheckCircle />
               {success}
             </div>
           )}
 
-          <div className="input-group">
-            <FaUser className="input-icon" />
-            <input
-              type="text"
-              name="name"
-              placeholder="Nom complet"
-              value={formData.name}
-              onChange={handleChange}
-              className="input-field"
-              required
-            />
+          <div className="input-group" style={{ marginBottom: '1rem' }}>
+            <div style={{ position: 'relative' }}>
+              <FaUser style={{
+                position: 'absolute',
+                left: '12px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                color: '#9ca3af'
+              }} />
+              <input
+                type="text"
+                name="name"
+                placeholder="Nom complet"
+                value={formData.name}
+                onChange={handleChange}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem 0.75rem 0.75rem 2.5rem',
+                  border: '2px solid #e5e7eb',
+                  borderRadius: '10px',
+                  fontSize: '1rem',
+                  outline: 'none',
+                  transition: 'all 0.3s ease'
+                }}
+                onFocus={(e) => e.target.style.borderColor = '#667eea'}
+                onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+                required
+              />
+            </div>
           </div>
 
-          <div className="input-group">
-            <FaEnvelope className="input-icon" />
-            <input
-              type="email"
-              name="mail"
-              placeholder="Adresse email"
-              value={formData.mail}
-              onChange={handleChange}
-              className="input-field"
-              required
-            />
+          <div className="input-group" style={{ marginBottom: '1rem' }}>
+            <div style={{ position: 'relative' }}>
+              <FaEnvelope style={{
+                position: 'absolute',
+                left: '12px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                color: '#9ca3af'
+              }} />
+              <input
+                type="email"
+                name="mail"
+                placeholder="Adresse email"
+                value={formData.mail}
+                onChange={handleChange}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem 0.75rem 0.75rem 2.5rem',
+                  border: '2px solid #e5e7eb',
+                  borderRadius: '10px',
+                  fontSize: '1rem',
+                  outline: 'none',
+                  transition: 'all 0.3s ease'
+                }}
+                onFocus={(e) => e.target.style.borderColor = '#667eea'}
+                onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+                required
+              />
+            </div>
           </div>
 
-          <div className="input-group">
-            <FaLock className="input-icon" />
-            <input
-              type="password"
-              name="password"
-              placeholder="Mot de passe"
-              value={formData.password}
-              onChange={handleChange}
-              className="input-field"
-              required
-            />
+          <div className="input-group" style={{ marginBottom: '0.5rem' }}>
+            <div style={{ position: 'relative' }}>
+              <FaLock style={{
+                position: 'absolute',
+                left: '12px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                color: '#9ca3af'
+              }} />
+              <input
+                type="password"
+                name="password"
+                placeholder="Mot de passe"
+                value={formData.password}
+                onChange={handleChange}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem 0.75rem 0.75rem 2.5rem',
+                  border: '2px solid #e5e7eb',
+                  borderRadius: '10px',
+                  fontSize: '1rem',
+                  outline: 'none',
+                  transition: 'all 0.3s ease'
+                }}
+                onFocus={(e) => e.target.style.borderColor = '#667eea'}
+                onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+                required
+              />
+            </div>
           </div>
 
           {passwordStrength && (
             <>
-              <div className={`password-strength strength-${passwordStrength}`}></div>
-              <div className="strength-text">{getStrengthText()}</div>
+              <div className="password-strength" style={{
+                height: '4px',
+                background: getStrengthColor(),
+                borderRadius: '2px',
+                marginTop: '0.5rem',
+                marginBottom: '0.25rem',
+                transition: 'all 0.3s ease'
+              }}></div>
+              <div className="strength-text" style={{
+                fontSize: '0.75rem',
+                color: getStrengthColor(),
+                marginBottom: '1rem'
+              }}>
+                {getStrengthText()}
+              </div>
             </>
           )}
 
-          <div className="input-group">
-            <FaLock className="input-icon" />
-            <input
-              type="password"
-              name="confirmPassword"
-              placeholder="Confirmer le mot de passe"
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              className="input-field"
-              required
-            />
+          <div className="input-group" style={{ marginBottom: '1.5rem' }}>
+            <div style={{ position: 'relative' }}>
+              <FaLock style={{
+                position: 'absolute',
+                left: '12px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                color: '#9ca3af'
+              }} />
+              <input
+                type="password"
+                name="confirmPassword"
+                placeholder="Confirmer le mot de passe"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem 0.75rem 0.75rem 2.5rem',
+                  border: '2px solid #e5e7eb',
+                  borderRadius: '10px',
+                  fontSize: '1rem',
+                  outline: 'none',
+                  transition: 'all 0.3s ease'
+                }}
+                onFocus={(e) => e.target.style.borderColor = '#667eea'}
+                onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+                required
+              />
+            </div>
           </div>
 
-          <button type="submit" disabled={loading} className="auth-button">
-            {loading ? 'Inscription...' : "S'inscrire"}
+          <button 
+            type="submit" 
+            disabled={loading} 
+            className="auth-button"
+            style={{
+              width: '100%',
+              padding: '0.875rem',
+              backgroundColor: '#667eea',
+              color: 'white',
+              border: 'none',
+              borderRadius: '10px',
+              fontSize: '1rem',
+              fontWeight: '600',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              opacity: loading ? 0.7 : 1,
+              transition: 'all 0.2s ease',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.5rem'
+            }}
+            onMouseEnter={(e) => {
+              if (!loading) e.target.style.transform = 'translateY(-2px)';
+            }}
+            onMouseLeave={(e) => {
+              if (!loading) e.target.style.transform = 'translateY(0)';
+            }}
+          >
+            {loading ? (
+              <>
+                <FaSpinner style={{ animation: 'spin 1s linear infinite' }} />
+                Inscription...
+              </>
+            ) : (
+              "S'inscrire"
+            )}
           </button>
         </form>
 
-        <div className="auth-footer">
+        <div className="auth-footer" style={{ textAlign: 'center', marginTop: '1.5rem', color: '#6b7280' }}>
           <p>
             Déjà inscrit ?{' '}
-            <Link to="/login" className="auth-link">
+            <Link to="/login" className="auth-link" style={{ color: '#667eea', textDecoration: 'none', fontWeight: '500' }}>
               Se connecter
             </Link>
           </p>
         </div>
       </div>
+      <style>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
 };
