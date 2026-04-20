@@ -15,10 +15,13 @@ const Navbar = () => {
   return (
     <nav className="navbar">
       <div className="container">
-        <Link to="/" className="logo">
-          <FaBook />
-          <span>BooksRent</span>
-        </Link>
+
+          
+          <span className="logo">
+            <FaBook />
+            BooksRent
+            </span>
+        
 
         <div className="nav-links">
           <Link to="/books">Livres</Link>
