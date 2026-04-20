@@ -417,3 +417,69 @@ app.get('/api/v1/livres', async (req, res) => {
         res.status(500).json({ message: 'Error fetching books' });
     }
 });
+/* =========================================================
+   👤 USER MANAGEMENT ROUTES
+========================================================= */
+
+/**
+ * GET all users
+ */
+app.get('/api/v1/users', async (req, res) => {
+    try {
+        const users = await db.collection("users").find({}).toArray();
+        // Remove passwords from response
+        const safeUsers = users.map(user => ({
+            _id: user._id,
+            name: user.name,
+            mail: user.mail,
+            createdAt: user.createdAt
+        }));
+        res.status(200).json(safeUsers);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error fetching users' });
+    }
+});
+
+/**
+ * DELETE user by ID
+ */
+app.delete('/api/v1/user/:id', async (req, res) => {
+    try {
+        const id = new ObjectId(req.params.id);
+        const result = await db.collection("users").deleteOne({ _id: id });
+        
+        if (result.deletedCount === 0) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        
+        res.status(200).json({ message: 'User deleted successfully' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error deleting user' });
+    }
+});
+
+/**
+ * UPDATE user by ID
+ */
+app.put('/api/v1/user/:id', async (req, res) => {
+    try {
+        const id = new ObjectId(req.params.id);
+        const { name, mail } = req.body;
+        
+        const result = await db.collection("users").updateOne(
+            { _id: id },
+            { $set: { name, mail } }
+        );
+        
+        if (result.matchedCount === 0) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        
+        res.status(200).json({ message: 'User updated successfully' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error updating user' });
+    }
+});

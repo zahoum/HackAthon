@@ -97,15 +97,6 @@ const Login = () => {
             {loading ? 'Connexion...' : 'Se connecter'}
           </button>
         </form>
-
-        <div className="auth-footer">
-          <p>
-            Pas encore de compte ?{' '}
-            <Link to="/register" className="auth-link">
-              Créer un compte
-            </Link>
-          </p>
-        </div>
         <div className="auth-footer">
           <p>tu est admin</p>
           <Link to="/admin-register" className="auth-link">click</Link>

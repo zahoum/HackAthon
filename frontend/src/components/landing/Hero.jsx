@@ -17,16 +17,6 @@ const Hero = () => {
               <Link to="/books" className="btn btn-primary">
                 Explorer les livres
               </Link>
-              <Link to="/register" style={{ 
-                border: '2px solid white', 
-                padding: '0.75rem 1.5rem', 
-                borderRadius: '0.5rem', 
-                fontWeight: 'bold',
-                textDecoration: 'none',
-                color: 'white'
-              }}>
-                S'inscrire gratuitement
-              </Link>
             </div>
           </div>
           

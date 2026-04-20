@@ -1,6 +1,7 @@
 // MyRentals.jsx - Updated with real backend data
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { Link } from 'react-router-dom'
 import { FaBook, FaCalendarCheck, FaUndo, FaSpinner, FaExclamationTriangle } from 'react-icons/fa';
 import axios from 'axios';
 
