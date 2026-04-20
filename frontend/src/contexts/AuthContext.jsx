@@ -24,38 +24,48 @@ export const AuthProvider = ({ children }) => {
 
   // Load user from localStorage on app start
   useEffect(() => {
-    const loadUser = async () => {
-      try {
-        const storedUser = localStorage.getItem('user');
-        console.log('Loading user from localStorage:', storedUser);
+  const loadUser = async () => {
+    try {
+      const storedUser = localStorage.getItem('user');
+      console.log('Loading user from localStorage:', storedUser);
+      
+      if (storedUser && storedUser !== 'undefined') {
+        const userData = JSON.parse(storedUser);
+        console.log('Parsed user data:', userData);
         
-        if (storedUser && storedUser !== 'undefined') {
-          const userData = JSON.parse(storedUser);
-          console.log('Parsed user data:', userData);
+        // Handle both _id and id field names
+        const userId = userData._id || userData.id;
+        
+        if (userId) {
+          // Create a normalized user object
+          const normalizedUser = {
+            _id: userId,
+            id: userId,
+            name: userData.name,
+            mail: userData.mail || userData.email,
+            email: userData.mail || userData.email
+          };
           
-          // Validate that user has an _id
-          if (userData && userData._id) {
-            setUser(userData);
-            console.log('User set in context:', userData);
-          } else {
-            console.error('Invalid user data - missing _id');
-            localStorage.removeItem('user');
-            localStorage.removeItem('token');
-          }
+          console.log('Normalized user:', normalizedUser);
+          setUser(normalizedUser);
+          
+          // Update localStorage with normalized format
+          localStorage.setItem('user', JSON.stringify(normalizedUser));
         } else {
-          console.log('No user found in localStorage');
+          console.error('Invalid user data - missing ID');
+          localStorage.removeItem('user');
         }
-      } catch (error) {
-        console.error('Error loading user from storage:', error);
-        localStorage.removeItem('user');
-        localStorage.removeItem('token');
-      } finally {
-        setLoading(false);
       }
-    };
-    
-    loadUser();
-  }, []);
+    } catch (error) {
+      console.error('Error loading user:', error);
+      localStorage.removeItem('user');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  loadUser();
+}, []);
 
   // Login function
   const login = async (email, password) => {

@@ -278,7 +278,60 @@ app.get('/api/v1/emprunt/:id', async (req, res) => {
         res.status(500).json({ message: 'Error fetching borrow record' });
     }
 });
+/* =========================================================
+   📦 GET ALL RENTALS
+========================================================= */
 
+/**
+ * GET all rented books
+ */
+app.get('/api/v1/rentedBooks', async (req, res) => {
+    try {
+        const rentals = await db.collection("rentedBooks").find({}).toArray();
+        res.status(200).json(rentals);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error fetching rentals' });
+    }
+});
+
+/**
+ * GET rentals by user ID
+ */
+app.get('/api/v1/rentedBooks/user/:userId', async (req, res) => {
+    try {
+        const userId = new ObjectId(req.params.userId);
+        const rentals = await db.collection("rentedBooks").find({ userId: userId }).toArray();
+        res.status(200).json(rentals);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error fetching user rentals' });
+    }
+});
+
+/**
+ * UPDATE rental (mark as returned)
+ */
+app.put('/api/v1/emprunt/:id', async (req, res) => {
+    try {
+        const id = new ObjectId(req.params.id);
+        const { isReturned } = req.body;
+
+        const result = await db.collection("rentedBooks").updateOne(
+            { _id: id },
+            { $set: { isReturned: isReturned, returnDate: new Date() } }
+        );
+
+        if (result.matchedCount === 0) {
+            return res.status(404).json({ message: 'Rental not found' });
+        }
+
+        res.status(200).json({ message: 'Rental updated successfully' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error updating rental' });
+    }
+});
 /* =========================================================
    👤 AUTH ROUTES
 ========================================================= */
