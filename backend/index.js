@@ -34,16 +34,7 @@ app.listen(port, ipV4, () => {
 /* =========================================================
    📚 BOOK ROUTES
 ========================================================= */
-//  GET all books from aissa sahbk : hadi nsitiha a arrach(larp)
-app.get('/api/v1/books', async (req, res) => {
-    try {
-        const books = await db.collection("books").find({}).toArray();
-        res.status(200).json(books);
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Error fetching books' });
-    }
-});
+
 /**
  * GET book by ID
  */
@@ -67,17 +58,25 @@ app.get('/api/v1/livre/:id', async (req, res) => {
 });
 
 /**
- * CREATE new book (title, author, category) Aissa daz mn hna hydt rir year bax t5dem liuya
+ * CREATE new book (title, author, category)
  */
 app.post('/api/v1/livre', async (req, res) => {
     try {
-        const { title, author, year } = req.body;
+        const { title, author, category } = req.body; 
 
-        if (!title || !author || !year) {
-            return res.status(400).json({ message: "Missing fields" });
+        if (!title || !author || !category) {  // ✅ Validating 'category'
+            return res.status(400).json({ 
+                message: "Missing fields. Required: title, author, category",
+                received: { title, author, category }
+            });
         }
 
-        const newBook = { title, author, year };
+        const newBook = { 
+            title, 
+            author, 
+            category, 
+            isRented: false  
+        };
 
         const result = await db.collection("books").insertOne(newBook);
 
@@ -85,59 +84,16 @@ app.post('/api/v1/livre', async (req, res) => {
             _id: result.insertedId,
             title,
             author,
-            year
+            category,
+            isRented: false
         });
 
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: 'Error creating book' });
+        res.status(500).json({ message: 'Error creating book: ' + error.message });
     }
 });
-/**
- * UPDATE book (title, author, category) Larp Daz mn hna
- */
-app.put('/api/v1/livre/:id', async (req, res) => {
-    try {
-        const id = new ObjectId(req.params.id);
-        const { title, author, category } = req.body;
 
-        // Validation
-        if (!title || !author || !category) {
-            return res.status(400).json({ 
-                message: "Missing fields. Required: title, author, category" 
-            });
-        }
-
-        const result = await db.collection("books").updateOne(
-            { _id: id },
-            { 
-                $set: { 
-                    title, 
-                    author, 
-                    category 
-                } 
-            }
-        );
-
-        if (result.matchedCount === 0) {
-            return res.status(404).json({ message: 'Book not found' });
-        }
-
-        res.status(200).json({ 
-            message: 'Book updated successfully',
-            book: {
-                _id: id,
-                title,
-                author,
-                category
-            }
-        });
-
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Error updating book' });
-    }
-});
 /**
  * DELETE book
  */
@@ -162,7 +118,6 @@ app.delete('/api/v1/livre/:id', async (req, res) => {
 /* =========================================================
    📦 BORROW (EMPRUNT) ROUTES
 ========================================================= */
-
 /**
  * CREATE borrow record
  */
@@ -170,54 +125,139 @@ app.post('/api/v1/emprunt', async (req, res) => {
     try {
         const { bookId, userId, rentDate, returnDate } = req.body;
 
-        if (!bookId || !userId) {
-            return res.status(400).json({ message: "Missing fields" });
+        console.log('Received borrow request:', req.body);
+        console.log('BookId type:', typeof bookId, 'value:', bookId);
+        console.log('UserId type:', typeof userId, 'value:', userId);
+
+        // Check if fields exist
+        if (!bookId) {
+            return res.status(400).json({ 
+                message: "bookId is required",
+                received: req.body
+            });
+        }
+        
+        if (!userId) {
+            return res.status(400).json({ 
+                message: "userId is required",
+                received: req.body
+            });
+        }
+
+        // Validate ObjectId format
+        const isValidObjectId = (id) => {
+            return /^[0-9a-fA-F]{24}$/.test(id);
+        };
+
+        if (!isValidObjectId(bookId)) {
+            return res.status(400).json({ 
+                message: "Invalid bookId format. Must be a 24-character hex string",
+                received: bookId
+            });
+        }
+
+        if (!isValidObjectId(userId)) {
+            return res.status(400).json({ 
+                message: "Invalid userId format. Must be a 24-character hex string",
+                received: userId
+            });
+        }
+
+        // Convert string IDs to ObjectId
+        const bookObjectId = new ObjectId(bookId);
+        const userObjectId = new ObjectId(userId);
+
+        // Check if book exists
+        const bookExists = await db.collection("books").findOne({ _id: bookObjectId });
+        if (!bookExists) {
+            return res.status(404).json({ message: 'Book not found' });
+        }
+
+        // Check if user exists
+        const userExists = await db.collection("users").findOne({ _id: userObjectId });
+        if (!userExists) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // Check if book is already rented
+        if (bookExists.isRented === true) {
+            return res.status(400).json({ message: 'Book is already rented' });
         }
 
         const newBorrow = {
-            bookId,
-            userId,
-            rentDate,
-            returnDate
+            bookId: bookObjectId,
+            userId: userObjectId,
+            rentDate: rentDate ? new Date(rentDate) : new Date(),
+            returnDate: returnDate ? new Date(returnDate) : new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+            isReturned: false,
+            rentedAt: new Date()
         };
 
         const result = await db.collection("rentedBooks").insertOne(newBorrow);
 
+        // Update the book's isRented status
+        await db.collection("books").updateOne(
+            { _id: bookObjectId },
+            { $set: { isRented: true } }
+        );
+
         res.status(200).json({
+            success: true,
             _id: result.insertedId,
-            ...newBorrow
+            message: "Book rented successfully",
+            rental: {
+                bookId: bookObjectId,
+                userId: userObjectId,
+                rentDate: newBorrow.rentDate,
+                returnDate: newBorrow.returnDate
+            }
+        });
+
+    } catch (error) {
+        console.error('Error creating borrow record:', error);
+        res.status(500).json({ message: 'Error creating borrow record: ' + error.message });
+    }
+});
+/**
+ * UPDATE book (title, author, category, isRented)
+ */
+app.put('/api/v1/livre/:id', async (req, res) => {
+    try {
+        const id = new ObjectId(req.params.id);
+        const { title, author, category, isRented } = req.body;
+
+        // Build update object dynamically
+        const updateFields = {};
+        if (title !== undefined) updateFields.title = title;
+        if (author !== undefined) updateFields.author = author;
+        if (category !== undefined) updateFields.category = category;
+        if (isRented !== undefined) updateFields.isRented = isRented;
+
+        if (Object.keys(updateFields).length === 0) {
+            return res.status(400).json({ 
+                message: "No fields to update. Provide at least one field: title, author, category, or isRented"
+            });
+        }
+
+        const result = await db.collection("books").updateOne(
+            { _id: id },
+            { $set: updateFields }
+        );
+
+        if (result.matchedCount === 0) {
+            return res.status(404).json({ message: 'Book not found' });
+        }
+
+        res.status(200).json({ 
+            message: 'Book updated successfully',
+            updatedFields: updateFields
         });
 
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: 'Error creating borrow record' });
+        res.status(500).json({ message: 'Error updating book: ' + error.message });
     }
 });
-
-/**
- * UPDATE borrow (mark as returned)
- */
-app.put('/api/v1/emprunt/:id', async (req, res) => {
-    try {
-        const id = new ObjectId(req.params.id);
-
-        const result = await db.collection("rentedBooks").updateOne(
-            { _id: id },
-            { $set: { isReturned: true } }
-        );
-
-        if (result.matchedCount === 0) {
-            return res.status(404).json({ message: 'Borrow record not found' });
-        }
-
-        res.status(200).json({ message: 'Borrow updated successfully' });
-
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Error updating borrow record' });
-    }
-});
-
 /**
  * GET borrow by ID
  */

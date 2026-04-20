@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { FaSearch, FaEdit, FaTrash, FaUserPlus, FaEnvelope, FaCalendar, FaSpinner, FaUserCheck } from 'react-icons/fa';
 
-const API_URL = 'http://localhost/api/v1';
+const API_URL = 'http://localhost:5000/api/v1';
 
 export default function UsersManagement() {
   const [users, setUsers] = useState([]);

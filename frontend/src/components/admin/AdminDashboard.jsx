@@ -5,7 +5,7 @@ import { FaChartLine, FaUsers, FaBook, FaCog, FaSignOutAlt, FaSpinner } from 're
 import UsersManagement from './UsersManagement';
 import AddBooks from './AddBooks';
 
-const API_URL = 'http://localhost/api/v1';
+const API_URL = 'http://localhost:5000/api/v1';
 
 export default function AdminDashboard() {
   const navigate = useNavigate();

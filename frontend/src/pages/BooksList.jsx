@@ -2,21 +2,13 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { FaSearch, FaFilter, FaUser, FaBook, FaArrowRight } from 'react-icons/fa';
+import { FaSearch, FaFilter, FaUser, FaBook, FaArrowRight, FaSpinner } from 'react-icons/fa';
 import axios from 'axios';
 
-let BOOKS;
-
-async function fetchBooks() {
-  try {
-    const response = await axios.get('http://localhost:5000/api/v1/livres');    
-    BOOKS = response.data;    
-  } catch (error) {
-    console.error('Error fetching books:', error);
-  }
-}
-
-fetchBooks();
+// Create axios instance
+const api = axios.create({
+  baseURL: 'http://localhost:5000/api/v1',
+});
 
 const BooksList = () => {
   const [books, setBooks] = useState([]);
@@ -27,6 +19,60 @@ const BooksList = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
+  // Fetch books from API
+  const fetchBooks = async () => {
+    setLoading(true);
+    try {
+      let url = '/livres'; // Using your existing endpoint
+      const params = {};
+      
+      if (search) params.search = search;
+      if (category) params.category = category;
+      
+      const response = await api.get(url, { params });
+      console.log('Fetched books:', response.data);
+      setBooks(response.data);
+    } catch (error) {
+      console.error('Error fetching books:', error);
+      setBooks([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch categories from books
+  const fetchCategories = async () => {
+    try {
+      const response = await api.get('/livres');
+      const allBooks = response.data;
+      // Extract unique categories
+      const uniqueCategories = [...new Set(allBooks.map(book => book.category).filter(Boolean))];
+      setCategories(uniqueCategories);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      // Default categories
+      setCategories(['Fiction', 'Science Fiction', 'Fantasy', 'Classic', 'Biography', 'Mystery', 'Thriller']);
+    }
+  };
+
+  // Filter books based on search and category
+  const getFilteredBooks = () => {
+    let filtered = books;
+    
+    if (search) {
+      filtered = filtered.filter(book => 
+        book.title?.toLowerCase().includes(search.toLowerCase()) ||
+        book.author?.toLowerCase().includes(search.toLowerCase())
+      );
+    }
+    
+    if (category) {
+      filtered = filtered.filter(book => book.category === category);
+    }
+    
+    return filtered;
+  };
+
   useEffect(() => {
     if (!user) {
       navigate('/login');
@@ -34,38 +80,20 @@ const BooksList = () => {
     }
     fetchBooks();
     fetchCategories();
-  }, [search, category, user]);
+  }, [user]); // Only run when user changes
 
-  const fetchBooks = async () => {
-    setLoading(true);
-    try {
-      const params = {};
-      if (search) params.search = search;
-      if (category) params.category = category;
-      
-      const response = await api.get('/books', { params });
-      setBooks(response.data);
-    } catch (error) {
-      console.error('Error fetching books:', error);
-      // Mock data for demo
-      setBooks(BOOKS);
-    } finally {
-      setLoading(false);
+  // Refetch when search or category changes
+  useEffect(() => {
+    if (user) {
+      fetchBooks();
     }
-  };
-
-  const fetchCategories = async () => {
-    try {
-      const response = await api.get('/books/categories');
-      setCategories(response.data);
-    } catch (error) {
-      setCategories(['Fiction', 'Science Fiction', 'Fantasy', 'Classique', 'Biography']);
-    }
-  };
+  }, [search, category]);
 
   if (!user) {
     return null;
   }
+
+  const filteredBooks = getFilteredBooks();
 
   return (
     <div className="books-page">
@@ -107,9 +135,10 @@ const BooksList = () => {
         {/* Books Grid */}
         {loading ? (
           <div className="books-loading">
-            <div className="loading-spinner"></div>
+            <FaSpinner className="loading-spinner" />
+            <p>Chargement des livres...</p>
           </div>
-        ) : books.length === 0 ? (
+        ) : filteredBooks.length === 0 ? (
           <div className="books-empty">
             <div className="empty-icon">📖</div>
             <h3 className="empty-title">Aucun livre trouvé</h3>
@@ -117,10 +146,10 @@ const BooksList = () => {
           </div>
         ) : (
           <div className="books-grid">
-            {books.map((book) => (
+            {filteredBooks.map((book) => (
               <div key={book._id} className="book-card">
-                <div className={`book-badge ${book.available ? 'available' : 'unavailable'}`}>
-                  {book.available ? 'Disponible' : 'Indisponible'}
+                <div className={`book-badge ${book.isRented === false ? 'available' : 'unavailable'}`}>
+                  {book.isRented === false ? 'Disponible' : 'Indisponible'}
                 </div>
                 <img 
                   src={book.cover || `https://picsum.photos/300/400?random=${book._id}`} 
@@ -135,13 +164,9 @@ const BooksList = () => {
                   </p>
                   <span className="book-category">
                     <FaBook size={10} style={{ display: 'inline', marginRight: '0.25rem' }} />
-                    {book.category}
+                    {book.category || 'Non catégorisé'}
                   </span>
                   <div className="book-footer">
-                    <div className="book-price">
-                      <span className="price-amount">{book.price}€</span>
-                      <span className="price-period">/mois</span>
-                    </div>
                     <Link to={`/books/${book._id}`} className="book-link">
                       Voir détails
                       <FaArrowRight size={12} />

@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { FaBook, FaUser, FaTag, FaPlus, FaCheck, FaSpinner } from 'react-icons/fa';
 
-const API_URL = 'http://localhost/api/v1';
+const API_URL = 'http://localhost:5000/api/v1';
 
 export default function AddBooks() {
   const [books, setBooks] = useState([]);
@@ -295,28 +295,35 @@ export default function AddBooks() {
       )}
 
       <div className="books-grid">
-        {books.map(book => (
-          <div key={book._id} className="book-card">
-            <div className="book-cover">
-              <span className="book-emoji">{getRandomCover()}</span>
-            </div>
-            <div className="book-info">
-              <h3>{book.title}</h3>
-              <p className="book-author">by {book.author}</p>
-              <span className="book-category">{book.category || 'Uncategorized'}</span>
-              {book.isRented && <span className="rented-badge">Rented</span>}
-            </div>
-            <div className="book-actions">
-              <button className="edit-btn" onClick={() => handleEdit(book)}>
-                Edit
-              </button>
-              <button className="delete-btn" onClick={() => handleDelete(book._id)}>
-                Delete
-              </button>
-            </div>
-          </div>
-        ))}
+  {books.map(book => (
+    <div key={book._id} className="book-card">
+      <div className="book-cover">
+        <span className="book-emoji">{getRandomCover()}</span>
       </div>
+      <div className="book-info">
+        <h3>{book.title}</h3>
+        <p className="book-author">by {book.author}</p>
+        <div className="book-meta">
+          <span className="book-category">{book.category || 'Uncategorized'}</span>
+          {/* Fix: Check if isRented is explicitly true */}
+          {book.isRented === true ? (
+            <span className="status-badge unavailable">📕 Indisponible</span>
+          ) : (
+            <span className="status-badge available">✅ Disponible</span>
+          )}
+        </div>
+      </div>
+      <div className="book-actions">
+        <button className="edit-btn" onClick={() => handleEdit(book)}>
+          Edit
+        </button>
+        <button className="delete-btn" onClick={() => handleDelete(book._id)}>
+          Delete
+        </button>
+      </div>
+    </div>
+  ))}
+</div>
 
       {books.length === 0 && !showForm && (
         <div className="empty-state">
